@@ -1,20 +1,42 @@
-name: Continious Deployment Unreal Prject
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+name: Build Unreal Engine 5
+
 on:
   push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+.[0-9]+"
+    branches:
+      - main
 
 jobs:
-  Build-and-deploy:
-    runs-on: self-hosted
+  build:
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Check out repository code
+      - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Build Unreal Engine 5 Project
+        uses: Fork-on-the-Table-Collective/UE5-build-action@v1
         with:
-          lfs: "true"
-      - name: build-Project
-        run: |
-          cd AutomationScripts
-          ls
-          ./compile.bat "../UnrealProject/UnrealProject.uproject" "../UnrealProject/Build" "Win64"
+          enginePath: 'C:/Program Files/Epic Games/UE_5.4'
+          uprojectPath: './DefenseTower.uproject'
+          buildConfig: 'Shipping'
+          platform: 'Win64'
+          clean: 'true'
+          cook: 'true'
+          compressed: 'true'
+          UpdateIfNeeded: 'true'
+          stage: 'true'
+          package: 'false'
+          pak: 'false'
+          server: 'false'
+          archive: 'false'
+          archivePath: 'path/to/archive'
+          nullrhi: 'false'
+          editor: 'true'
+          encryptIniFiles: 'false'
+          release: '1.0.0'
+          patch: '1.0.1'
+          maps: 'Map1,Map2'
+          deletePDB: 'false'
+          anticheatEnabled: 'true'
+          anticheatPrivateKey: 'base64-private-key'
+          anticheatPublicCert: 'base64-public-cert'
