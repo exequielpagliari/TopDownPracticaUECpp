@@ -13,12 +13,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Login to GitHub Container Registry
-        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Extract repository name
-        run: echo "PROJECT_NAME=$(basename ${{ github.repository }})" >> $GITHUB_ENV
-
+      
       - name: Build and Package Game
         run: |
           docker run --rm -i -v "${{ github.workspace }}/${{ env.PROJECT_NAME }}_Project:/project" -w /home/ue4/UnrealEngine ghcr.io/epicgames/unreal-engine:dev-slim-5.4.2 \
