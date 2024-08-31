@@ -13,6 +13,8 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: download Docker
+        run: docker pull ghcr.io/epicgames/unreal-cloud-ddc:1.2.0_helm
       
       - name: Build and Package Game
         run: |
