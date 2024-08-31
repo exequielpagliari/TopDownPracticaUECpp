@@ -4,7 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Components/BoxComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "AProjectile.generated.h"
+
 
 UCLASS()
 class DEFENSETOWER_API AAProjectile : public AActor
@@ -24,9 +27,25 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Visual, meta = (AllowPrivateAccess = "true"))
+	UBoxComponent* _BoxComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Visual, meta = (AllowPrivateAccess = "true"))
+	UStaticMeshComponent* _MeshComponent;
+
 	float _LifeCountingDown;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	FORCEINLINE UBoxComponent* GetBoxComponent() const
+	{
+		return _BoxComponent;
+	}
+	FORCEINLINE UStaticMeshComponent* GetMeshComponent() const
+	{
+		return _MeshComponent;
+	}
 
 };

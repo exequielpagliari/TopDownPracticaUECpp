@@ -10,7 +10,10 @@
 #include "EnhancedInputComponent.h"
 #include "InputActionValue.h"
 #include "EnhancedInputSubsystems.h"
+#include "APlayerAvatar.h"
 #include "Engine/LocalPlayer.h"
+
+#pragma once
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -32,7 +35,7 @@ void ADefenseTowerPlayerController::SetupInputComponent()
 {
 	// set up gameplay key bindings
 	Super::SetupInputComponent();
-
+	InputComponent->BindAction("Attack", IE_Pressed, this, &ADefenseTowerPlayerController::OnAttackPressed);
 	// Add Input Mapping Context
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 	{
@@ -53,11 +56,15 @@ void ADefenseTowerPlayerController::SetupInputComponent()
 		EnhancedInputComponent->BindAction(SetDestinationTouchAction, ETriggerEvent::Triggered, this, &ADefenseTowerPlayerController::OnTouchTriggered);
 		EnhancedInputComponent->BindAction(SetDestinationTouchAction, ETriggerEvent::Completed, this, &ADefenseTowerPlayerController::OnTouchReleased);
 		EnhancedInputComponent->BindAction(SetDestinationTouchAction, ETriggerEvent::Canceled, this, &ADefenseTowerPlayerController::OnTouchReleased);
+		
+		
 	}
 	else
 	{
 		UE_LOG(LogTemplateCharacter, Error, TEXT("'%s' Failed to find an Enhanced Input Component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
 	}
+
+
 }
 
 void ADefenseTowerPlayerController::OnInputStarted()
@@ -70,7 +77,7 @@ void ADefenseTowerPlayerController::OnSetDestinationTriggered()
 {
 	// We flag that the input is being pressed
 	FollowTime += GetWorld()->GetDeltaSeconds();
-	
+
 	// We look for the location in the world where the player has pressed the input
 	FHitResult Hit;
 	bool bHitSuccessful = false;
@@ -88,7 +95,7 @@ void ADefenseTowerPlayerController::OnSetDestinationTriggered()
 	{
 		CachedDestination = Hit.Location;
 	}
-	
+
 	// Move towards mouse pointer or touch
 	APawn* ControlledPawn = GetPawn();
 	if (ControlledPawn != nullptr)
@@ -123,3 +130,21 @@ void ADefenseTowerPlayerController::OnTouchReleased()
 	bIsTouch = false;
 	OnSetDestinationReleased();
 }
+
+void ADefenseTowerPlayerController::OnAttackPressed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Golpe"));
+	
+	auto playerAvatar = Cast<AAPlayerAvatar>(GetPawn());
+	if (playerAvatar->CanAttack())
+	{
+		playerAvatar->Attack();
+	}
+}
+
+
+
+
+
+
+

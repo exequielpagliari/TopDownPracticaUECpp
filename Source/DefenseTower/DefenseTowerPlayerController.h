@@ -21,7 +21,7 @@ class ADefenseTowerPlayerController : public APlayerController
 
 public:
 	ADefenseTowerPlayerController();
-
+	
 	/** Time Threshold to know if it was a short press */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	float ShortPressThreshold;
@@ -57,6 +57,7 @@ protected:
 	void OnSetDestinationReleased();
 	void OnTouchTriggered();
 	void OnTouchReleased();
+	void OnAttackPressed();
 
 private:
 	FVector CachedDestination;
