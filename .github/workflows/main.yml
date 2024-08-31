@@ -6,10 +6,9 @@ on:
       - master
 
 jobs:
-  build-and-package:
-    runs-on: 
-      group: unreal-engine-projects
-
+  build:
+    runs-on: ubuntu-latest
+  
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
