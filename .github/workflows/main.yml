@@ -1,0 +1,108 @@
+name: 'UE5-Semantic-Versioning'
+description: 'Fetches tags and calculates version and build number from an INI file.'
+author: 'Orchid Isle Games'
+branding:
+  icon: 'anchor'
+  color: 'green' # You can use a specific shade of green like '008000' if you prefer
+inputs:
+  BUILD_PREFIX:
+    description: 'The semantic versioning prefix to apply to the build. (dev, alpha, beta, rc, etc)'
+    required: true
+  CONFIG_DIR_PATH:
+    description: 'Full path to the MyProject/Config directory.'
+    required: true
+  ADD_BUILD_INFO:
+    description: 'Add BuildInfo.ini (Contains build id) to config.'
+    default: true
+  USE_RELEASE_BUILD:
+    description: 'Use release build (true or false). If true, uses the release tag as BUILD_ID.'
+    required: true
+    default: 'false'
+runs:
+  using: 'composite'
+  steps:
+    - run: |
+        $isReleaseBuild = "${{ inputs.USE_RELEASE_BUILD }}" -eq 'true'
+        $releaseTag = $env:GITHUB_REF_NAME
+        
+        git fetch --tags
+        $tags = git tag --sort=-v:refname
+        Write-Host "Tags found: $tags"
+        
+        $iniPath = "${{ inputs.CONFIG_DIR_PATH }}/DefaultGame.ini"
+        $content = Get-Content $iniPath -Raw
+        Write-Host "INI file content: $content"
+        
+        $semVerPattern = 'ProjectVersion=([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?)'
+        $buildIdPattern = 'ProjectBuildId=([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)'
+
+        $defaultBuildId = "0.0.0.0"
+        $defaultVersion = "0.0.0.0"
+
+        if ($content -match $buildIdPattern) {
+          $defaultBuildId = $matches[1]
+          Write-Host "Found ProjectBuildId in INI: $defaultBuildId"
+        }
+        
+        if ($content -match $semVerPattern) {
+          $defaultVersion = $matches[1]
+          Write-Host "Found ProjectVersion in INI: $defaultVersion"
+        }
+        
+        if ($isReleaseBuild -and $releaseTag) {
+          # Use release tag for version and build ID, supporting both version formats
+          $buildId = $releaseTag
+          $newVersion = $buildId -replace '^v', ''
+          $newVersion = $newVersion -replace '-.*$', '' # Strip any prefix or suffix
+        } else {
+          # Updated to match both version formats in tags
+          $semVerTagPattern = '^(v)?[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$'
+          $latestTag = $null
+          foreach ($tag in $tags) {
+            if ($tag -match $semVerTagPattern) {
+              $latestTag = $matches[0]
+              break
+            }
+          }
+          
+          if ($null -eq $latestTag) {
+            $latestTag = $defaultBuildId
+            $commitCount = 0
+          } else {
+            $latestTag = $latestTag -replace '^v', ''
+            $commitCount = & git rev-list --count "${latestTag}..HEAD"
+          }
+          
+          $newVersion = $defaultVersion
+          Write-Host "Latest tag: $latestTag, Commit count: $commitCount"
+          if ($latestTag -ne $defaultBuildId) {
+            if ([Version]$latestTag -gt [Version]$defaultVersion) {
+              $newVersion = $latestTag
+            } elseif ([Version]$latestTag -eq [Version]$defaultVersion) {
+              # Auto-increment the appropriate version number based on format
+              if ($commitCount -gt 0) {
+                $versionParts = $newVersion -split '\.'
+                if ($versionParts.Length -eq 4) { # For 0.0.0.0 format, increment the last part
+                  $versionParts[3] = [int]$versionParts[3] + 1
+                } else { # For 0.0.0 format, increment the patch number
+                  $versionParts[2] = [int]$versionParts[2] + 1
+                }
+                $newVersion = $versionParts -join '.'
+              }
+            }
+          }
+          $buildId = "$newVersion-${{ inputs.BUILD_PREFIX }}$commitCount"
+        }
+        
+        echo "VERSION=$newVersion" >> $env:GITHUB_ENV
+        echo "BUILD_ID=$buildId" >> $env:GITHUB_ENV
+        Write-Host "Version set to: $newVersion"
+        Write-Host "Build ID set to: $buildId"
+      shell: powershell
+    - name: Create BuildInfo Config
+      if: ${{ inputs.ADD_BUILD_INFO == 'true' }}
+      run: |
+        $buildInfoPath = "${{ inputs.CONFIG_DIR_PATH }}/BuildInfo.ini"
+        $buildId = "${{ env.BUILD_ID }}"
+        "[BuildInfo]`r`nBuildID=$buildId" | Out-File -FilePath $buildInfoPath -Encoding utf8
+      shell: powershell
