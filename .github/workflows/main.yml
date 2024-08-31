@@ -1,4 +1,4 @@
-name: Build Unreal Engine 5
+name: Build Unreal Engine Game
 
 on:
   push:
@@ -6,35 +6,30 @@ on:
       - master
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-and-package:
+    runs-on: 
+      group: unreal-engine-projects
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - name: Cook, Stage & Package UE Project
-        uses: OrchidIsle/UE5-Build-Project@latest
-        with:
-          RUNUAT_PATH: 'C:/Unreal Engine/UE5.3_Source/Engine/Build/BatchFiles/RunUAT.bat'
-          UPROJECT_PATH: ${{ github.workspace }}/YourGameFolder/MyGame.uproject
-          BUILD_CONFIG: Development
-          PLATFORM: Win64
-          CLEAN: true
-          COOK: true
-          STAGE: true
-          PACKAGE: false
-          PAK: false
-          SERVER: false
-          ARCHIVE: false
-          ARCHIVE_PATH: 'C:/Archives/MyGame'
-          NULLRHI: true
-          EDITOR: true
-          ENCRYPT_INI: true
-          RELEASE: '1.0.0'
-          PATCH: '0.9.0'
-          MAPS: 'Map1,Map2'
-          DELETE_PDB: true
-          ANTICHEAT_ENABLED: true
-          ANTICHEAT_PRIVATE_KEY: 'base64encodedprivatekey'
-          ANTICHEAT_PUBLIC_CERT: 'base64encodedpubliccert'
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Extract repository name
+        run: echo "PROJECT_NAME=$(basename ${{ github.repository }})" >> $GITHUB_ENV
+
+      - name: Build and Package Game
+        run: |
+          docker run --rm -i -v "${{ github.workspace }}/${{ env.PROJECT_NAME }}_Project:/project" -w /home/ue4/UnrealEngine ghcr.io/epicgames/unreal-engine:dev-slim-5.4.2 \
+          ./Engine/Build/BatchFiles/RunUAT.sh \
+          BuildCookRun \
+            -utf8output \
+            -platform=Win64 \
+            -clientconfig=Shipping \
+            -serverconfig=Shipping \
+            -project=/project/${{ env.PROJECT_NAME }}_Project.uproject \
+            -noP4 -nodebuginfo -allmaps \
+            -cook -build -stage -prereqs -pak -archive \
+            -archivedirectory=/project/Packaged
